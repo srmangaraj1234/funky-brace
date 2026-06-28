@@ -473,7 +473,7 @@ export default function ReportFeature() {
 
   if (isSubmitted) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 text-center space-y-6 animate-in zoom-in-95 duration-350 text-left">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 text-center space-y-6 animate-in zoom-in-95 duration-350 text-left">
         <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-green-600 mx-auto border border-green-100">
           <CheckCircle className="w-8 h-8 stroke-[2.2]" />
         </div>
@@ -523,18 +523,20 @@ export default function ReportFeature() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 space-y-5 text-left">
-        <div className="flex items-center justify-between border-b border-slate-50 pb-3">
-          <div className="space-y-0.5">
-            <h3 className="text-sm font-bold text-slate-800">Raise New Issue</h3>
-            <p className="text-[11px] text-slate-400 font-medium">Auto-analyzed with Gemini Flash</p>
-          </div>
-          <div className="bg-green-50 text-green-700 p-1.5 rounded-lg border border-green-100">
-            <Sparkles className="w-4 h-4 stroke-[2.2]" />
-          </div>
+    <div className="space-y-4">
+      {/* 1. Header Row */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-left">
+        <div className="space-y-0.5">
+          <h2 className="text-lg font-bold text-slate-800 tracking-tight">Raise New Issue</h2>
+          <p className="text-xs text-slate-400 font-semibold">Auto-analyzed with Gemini Flash</p>
         </div>
+        <div className="bg-green-50 text-green-700 p-1.5 rounded-lg border border-green-100">
+          <Sparkles className="w-4 h-4 stroke-[2.2]" />
+        </div>
+      </div>
 
+      {/* 2. Form Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-5 text-left">
         {/* File Drag-and-drop Area */}
         {!file && !showManualForm ? (
           <div

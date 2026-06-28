@@ -64,18 +64,15 @@ export default function Navbar() {
 
       {/* Global Search */}
       <div className="hidden md:flex items-center flex-1 max-w-lg mx-8 relative">
-        <div className="absolute left-3.5 text-slate-400">
-          <Search className="w-4 h-4" />
-        </div>
         <input
           type="text"
-          placeholder="Search issues, categories, or wards..."
+          placeholder="Search reported civic issues..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-12 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800 placeholder-slate-400 font-medium"
+          className="w-full pl-4 pr-10 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800 placeholder-slate-400 font-medium"
         />
-        <div className="absolute right-3.5 px-1.5 py-0.5 text-[10px] font-mono font-bold text-slate-400 bg-white border border-slate-200 rounded-md shadow-xs">
-          ⌘K
+        <div className="absolute right-3.5 text-slate-400 pointer-events-none flex items-center">
+          <Search className="w-4 h-4" />
         </div>
       </div>
 

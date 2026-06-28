@@ -48,13 +48,15 @@ export default function FeedFeature() {
 
   // Filter & Search Logic
   const filteredIssues = issues.filter((issue) => {
-    const matchesSearch = 
-      issue.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      issue.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      issue.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (issue.description && issue.description.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    return matchesSearch;
+    const query = (searchQuery || '').trim().toLowerCase();
+    if (!query) return true;
+    
+    return (
+      (issue.title && issue.title.toLowerCase().includes(query)) ||
+      (issue.category && issue.category.toLowerCase().includes(query)) ||
+      (issue.address && issue.address.toLowerCase().includes(query)) ||
+      (issue.status && issue.status.toLowerCase().includes(query))
+    );
   }).sort((a, b) => {
     if (activeFilter === 'trending') {
       return (b.upvotesCount || 0) - (a.upvotesCount || 0);
@@ -229,7 +231,7 @@ export default function FeedFeature() {
       )}
 
       {/* Issues Cards List */}
-      <div className="space-y-4">
+      <div className="space-y-4 max-h-[440px] overflow-y-auto pr-2 custom-scrollbar">
         {filteredIssues.length > 0 ? (
           filteredIssues.map((issue) => (
             <IssueCard key={issue.id} issue={issue} />

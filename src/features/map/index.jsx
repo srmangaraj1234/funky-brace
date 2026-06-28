@@ -124,17 +124,28 @@ function ClusteredIssues({ issues, selectedIssueId, setSelectedIssueId }) {
 }
 
 export default function MapFeature() {
-  const { issues, selectedIssueId, setSelectedIssueId, toggleUpvote, user, userLocation } = useStore();
+  const { issues, selectedIssueId, setSelectedIssueId, toggleUpvote, user, userLocation, searchQuery } = useStore();
   const [zoom, setZoom] = useState(14);
 
-  const activeIssue = issues.find((i) => i.id === selectedIssueId);
+  const filteredIssues = issues.filter((issue) => {
+    const query = (searchQuery || '').trim().toLowerCase();
+    if (!query) return true;
+    return (
+      (issue.title && issue.title.toLowerCase().includes(query)) ||
+      (issue.category && issue.category.toLowerCase().includes(query)) ||
+      (issue.address && issue.address.toLowerCase().includes(query)) ||
+      (issue.status && issue.status.toLowerCase().includes(query))
+    );
+  });
+
+  const activeIssue = filteredIssues.find((i) => i.id === selectedIssueId) || issues.find((i) => i.id === selectedIssueId);
 
   const handleResetLocation = () => {
     setZoom(14);
     if (userLocation) {
       setSelectedIssueId(null);
-    } else if (issues.length > 0) {
-      setSelectedIssueId(issues[0].id);
+    } else if (filteredIssues.length > 0) {
+      setSelectedIssueId(filteredIssues[0].id);
     }
   };
 
@@ -171,7 +182,7 @@ export default function MapFeature() {
         <div>
           <h2 className="text-lg font-bold text-slate-800 tracking-tight">Civic Issue Map</h2>
           <p className="text-xs text-slate-400 font-semibold">
-            {issues.length} total reports • {userLocation ? 'Showing nearby' : 'Global fit bounds'}
+            {filteredIssues.length} total reports • {userLocation ? 'Showing nearby' : 'Global fit bounds'}
           </p>
         </div>
       </div>
@@ -239,7 +250,7 @@ export default function MapFeature() {
                 disableDefaultUI={true}
               >
                 {/* Dynamically pan/zoom the map to selected/current location */}
-                <MapUpdater userLocation={userLocation} issues={issues} />
+                <MapUpdater userLocation={userLocation} issues={filteredIssues} />
 
                 {/* Pulsating user GPS location marker if available */}
                 {userLocation && (
@@ -255,7 +266,7 @@ export default function MapFeature() {
 
                 {/* Render Advanced Clustered Markers for issues */}
                 <ClusteredIssues 
-                  issues={issues} 
+                  issues={filteredIssues} 
                   selectedIssueId={selectedIssueId} 
                   setSelectedIssueId={setSelectedIssueId} 
                 />
