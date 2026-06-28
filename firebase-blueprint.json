@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role details",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["citizen", "admin"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["email", "displayName", "role", "createdAt"]
+    },
+    "Issue": {
+      "title": "Issue",
+      "description": "Reported civic issue",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["Potholes", "Streetlight Non-Functional", "Water Leak", "Others"] },
+        "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+        "imageUrl": { "type": "string" },
+        "imageIsSafe": { "type": "boolean" },
+        "coordinates": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          },
+          "required": ["latitude", "longitude"]
+        },
+        "address": { "type": "string" },
+        "status": { "type": "string", "enum": ["Reported", "Verified", "In Progress", "Resolved"] },
+        "createdBy": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "isAnonymous": { "type": "boolean" },
+        "upvotesCount": { "type": "number" },
+        "upvotedBy": { "type": "array", "items": { "type": "string" } },
+        "adminNotes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "resolvedAt": { "type": "string" }
+      },
+      "required": ["title", "description", "category", "severity", "coordinates", "address", "status", "createdBy", "creatorName", "isAnonymous", "upvotesCount", "upvotedBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Users collection"
+    },
+    "/issues/{issueId}": {
+      "schema": "Issue",
+      "description": "Issues collection"
+    }
+  }
+}

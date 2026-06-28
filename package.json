@@ -1,0 +1,35 @@
+{
+  "name": "react-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.js",
+    "build": "vite build",
+    "start": "NODE_ENV=production node server/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@googlemaps/markerclusterer": "^2.6.2",
+    "@tailwindcss/vite": "^4.1.14",
+    "@vis.gl/react-google-maps": "^1.8.3",
+    "@vitejs/plugin-react": "^5.0.4",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^14.1.0",
+    "jspdf": "^2.5.2",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "multer": "^2.2.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "vite": "^6.2.3",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4.1.14"
+  }
+}
