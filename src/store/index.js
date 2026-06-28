@@ -345,7 +345,22 @@ export const useStore = create((set, get) => {
       const total = issues.length;
       const resolved = issues.filter((i) => i.status === 'Resolved').length;
       const pending = total - resolved;
-      return { total, pending, resolved };
+
+      // Calculate unique active citizens who have created or upvoted issues
+      const activeCitizensSet = new Set();
+      issues.forEach((issue) => {
+        if (issue.createdBy && issue.createdBy !== 'anonymous_guest') {
+          activeCitizensSet.add(issue.createdBy);
+        }
+        if (Array.isArray(issue.upvotedBy)) {
+          issue.upvotedBy.forEach((uid) => {
+            if (uid) activeCitizensSet.add(uid);
+          });
+        }
+      });
+      const activeCitizens = activeCitizensSet.size;
+
+      return { total, pending, resolved, activeCitizens };
     },
 
     setUser: (user) => set({ user }),

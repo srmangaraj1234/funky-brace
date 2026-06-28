@@ -28,6 +28,23 @@ export default function App() {
   const [detectedLocation, setDetectedLocation] = useState("Bengaluru Ward");
   const prevResolvedIdsRef = useRef(null);
 
+  const [timeframe, setTimeframe] = useState('This week');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close custom dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const getGreeting = () => {
     const hours = new Date().getHours();
     if (hours < 12) return "Good morning";
@@ -233,15 +250,42 @@ export default function App() {
           
           {/* Dropdown filter and Report issue button */}
           <div className="flex items-center space-x-3 self-start md:self-auto">
-            <div className="relative">
-              <select className="appearance-none bg-white border border-slate-200/80 rounded-xl pl-4 pr-10 py-2.5 text-xs font-bold text-slate-700 shadow-xs focus:outline-hidden focus:ring-2 focus:ring-green-500/20 cursor-pointer">
-                <option>This week</option>
-                <option>This month</option>
-                <option>All-time</option>
-              </select>
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-              </div>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center justify-between space-x-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-full pl-5 pr-4 py-2.5 text-xs font-bold text-slate-700 shadow-xs focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500/40 transition-all duration-200 select-none cursor-pointer"
+              >
+                <span>{timeframe}</span>
+                <svg
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-36 bg-white border border-slate-100 rounded-2xl p-1.5 shadow-lg z-50 animate-in fade-in slide-in-from-top-1 duration-100 text-left">
+                  {['This week', 'This month', 'All-time'].map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setTimeframe(option);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs font-bold rounded-xl transition-all ${
+                        timeframe === option
+                          ? 'bg-green-50 text-green-700'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <button
@@ -264,12 +308,12 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-4">
         {/* Dynamic Warning for Anonymous Users */}
         {!user && (
-          <div className="mb-6 bg-amber-50 border border-amber-100/80 p-4 rounded-2xl text-left text-amber-800 text-xs flex items-start space-x-3 shadow-xs">
+          <div className="mb-6 bg-green-50 border border-green-100/80 p-4 rounded-2xl text-left text-green-800 text-xs flex items-start space-x-3 shadow-xs">
             <span className="text-base">💡</span>
             <div>
               <p className="font-bold">You are currently in guest mode</p>
-              <p className="text-amber-600 mt-0.5 leading-relaxed">
-                Sign in with Google using the button in the top right to report new issues, upvote other reports, download official PDF receipts, or toggle Administrative mode!
+              <p className="text-slate-900 mt-0.5 leading-relaxed">
+                Sign in with Google using the button in the top right to report civic issues and upvote existing reports.
               </p>
             </div>
           </div>

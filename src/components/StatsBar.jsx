@@ -39,8 +39,8 @@ export default function StatsBar() {
     },
     {
       title: "Active Citizens",
-      value: "34,902", // Illustrative local citizen count
-      change: "+5.1%",
+      value: (stats.activeCitizens || 0).toLocaleString(),
+      change: "Real-time",
       bgColor: "bg-[#DBEAFE]",
       borderColor: "border-[#2563EB]/10",
       textColor: "text-[#2563EB]",
@@ -56,7 +56,7 @@ export default function StatsBar() {
         return (
           <div
             key={idx}
-            className={`${card.bgColor} ${card.borderColor} p-5 rounded-2xl border shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-[130px]`}
+            className={`${card.bgColor} ${card.borderColor} p-5 rounded-2xl border shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-[175px]`}
           >
             {/* Top row: Icon and Trend badge */}
             <div className="flex items-center justify-between w-full">
@@ -68,12 +68,12 @@ export default function StatsBar() {
               </span>
             </div>
 
-            {/* Bottom column: Big number and label */}
-            <div className="text-left mt-3">
-              <div className={`text-2xl font-extrabold tracking-tight leading-none ${card.textColor}`}>
+            {/* Bottom column: Centered and enlarged Big number and label */}
+            <div className="text-center mt-2 flex flex-col items-center justify-center flex-1">
+              <div className={`text-5xl sm:text-6xl font-extrabold tracking-tight leading-none ${card.textColor}`}>
                 {card.value}
               </div>
-              <div className={`text-[11px] font-semibold mt-1 uppercase tracking-wider ${card.textColor} opacity-80`}>
+              <div className={`text-[11px] font-semibold mt-2 uppercase tracking-wider ${card.textColor} opacity-80`}>
                 {card.title}
               </div>
             </div>

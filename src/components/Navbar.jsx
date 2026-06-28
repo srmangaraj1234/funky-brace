@@ -6,6 +6,7 @@ export default function Navbar() {
   const { user, role, loginWithGoogle, logout, toggleDevRole, searchQuery, setSearchQuery } = useStore();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const notifications = [
     {
@@ -34,7 +35,7 @@ export default function Navbar() {
   };
 
   const handleSignOut = () => {
-    logout();
+    setShowSignOutConfirm(true);
     setShowProfileDropdown(false);
   };
 
@@ -94,7 +95,7 @@ export default function Navbar() {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-[-60px] sm:right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white border border-slate-200/80 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-3 duration-250">
+            <div className="absolute right-[-44px] sm:right-0 mt-3 w-72 sm:w-80 bg-white border border-slate-200/80 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-3 duration-250">
               <div className="px-4 py-2 border-b border-slate-100 flex justify-between items-center">
                 <span className="font-semibold text-sm text-slate-800">Notifications</span>
                 <span className="text-[10px] bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full font-semibold">1 New</span>
@@ -217,6 +218,35 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      {/* Beautiful Sign Out Confirmation Modal */}
+      {showSignOutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200 text-left">
+            <h3 className="text-base font-bold text-slate-800">Sign Out</h3>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              Are you sure you want to sign out of FixMyCity? You will need to sign back in to report issues or upvote community reports.
+            </p>
+            <div className="flex items-center justify-end space-x-2.5 mt-5">
+              <button
+                onClick={() => setShowSignOutConfirm(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowSignOutConfirm(false);
+                  logout();
+                }}
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-all"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

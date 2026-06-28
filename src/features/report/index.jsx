@@ -662,20 +662,31 @@ export default function ReportFeature() {
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Severity</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {['low', 'medium', 'high'].map((lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => setSeverity(lvl)}
-                      className={`py-2 text-xs font-semibold rounded-xl border transition-all capitalize ${
-                        severity === lvl
-                          ? 'bg-green-600 text-white border-green-600 shadow-sm'
-                          : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
+                  {['low', 'medium', 'high'].map((lvl) => {
+                    let activeStyles = '';
+                    if (lvl === 'high') {
+                      activeStyles = 'bg-[#fee2e2] text-[#991b1b] border-[#fecaca] shadow-xs';
+                    } else if (lvl === 'medium') {
+                      activeStyles = 'bg-[#fef3c7] text-[#92400e] border-[#fde68a] shadow-xs';
+                    } else { // low
+                      activeStyles = 'bg-[#f0fdf4] text-[#166534] border-[#bbf7d0] shadow-xs';
+                    }
+
+                    return (
+                      <button
+                        key={lvl}
+                        type="button"
+                        onClick={() => setSeverity(lvl)}
+                        className={`py-2 text-xs font-bold rounded-xl border transition-all capitalize ${
+                          severity === lvl
+                            ? activeStyles
+                            : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-700'
+                        }`}
+                      >
+                        {lvl}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

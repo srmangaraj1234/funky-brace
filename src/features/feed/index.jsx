@@ -101,9 +101,10 @@ export default function FeedFeature() {
         <div className="text-left">
           <h2 className="text-lg font-bold text-slate-800 tracking-tight">Current Issues</h2>
           <p className="text-xs text-slate-400 font-medium">
-            {activeFilter === 'nearby' && userLocation 
-              ? 'Sorted by proximity to your current location' 
-              : 'Sorted by neighborhood recency'}
+            {activeFilter === 'all' && 'All community reports in your city'}
+            {activeFilter === 'nearby' && 'Closest reports to your location'}
+            {activeFilter === 'trending' && 'Most upvoted and actively discussed'}
+            {activeFilter === 'new' && 'Most recently reported issues'}
           </p>
         </div>
 
