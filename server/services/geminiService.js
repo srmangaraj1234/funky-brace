@@ -5,14 +5,18 @@ import { GoogleGenAI } from '@google/genai';
 
 let ai = null;
 
+/**
+ * Returns the initialized Gemini client.
+ * Performs a fast-fail check if the API key is not configured.
+ */
 function getAIClient() {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not configured on the server. Please define it in your environment or Settings > Secrets.');
+  }
+
   if (!ai) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn('GEMINI_API_KEY environment variable is not defined.');
-    }
     ai = new GoogleGenAI({
-      apiKey,
+      apiKey: process.env.GEMINI_API_KEY,
       httpOptions: {
         headers: {
           'User-Agent': 'aistudio-build',
@@ -23,11 +27,52 @@ function getAIClient() {
   return ai;
 }
 
+/**
+ * Validates the parsed AI response to ensure it strictly conforms to our required schema.
+ * Throws a controlled error if any validation check fails.
+ */
+function validateAIResponse(parsed) {
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error('AI response is not a valid JSON object');
+  }
+
+  // Type and existence checks
+  if (typeof parsed.isAppropriate !== 'boolean') {
+    throw new Error('AI response is missing or has invalid "isAppropriate" boolean field');
+  }
+  if (typeof parsed.title !== 'string' || !parsed.title.trim()) {
+    throw new Error('AI response is missing or has invalid "title" string field');
+  }
+  if (typeof parsed.description !== 'string' || !parsed.description.trim()) {
+    throw new Error('AI response is missing or has invalid "description" string field');
+  }
+  if (typeof parsed.category !== 'string' || !parsed.category.trim()) {
+    throw new Error('AI response is missing or has invalid "category" string field');
+  }
+  if (typeof parsed.severity !== 'string' || !parsed.severity.trim()) {
+    throw new Error('AI response is missing or has invalid "severity" string field');
+  }
+
+  // Enum value checks
+  const validCategories = ['Potholes', 'Streetlight Non-Functional', 'Water Leak', 'Others'];
+  const validSeverities = ['low', 'medium', 'high'];
+
+  if (!validCategories.includes(parsed.category)) {
+    throw new Error(`AI response contains unsupported category: "${parsed.category}"`);
+  }
+  if (!validSeverities.includes(parsed.severity)) {
+    throw new Error(`AI response contains unsupported severity: "${parsed.severity}"`);
+  }
+
+  return true;
+}
+
+/**
+ * Analyzes an uploaded civic issue image using Google's stable production Gemini models.
+ * Includes auto-fallback, transient retry logic with rate-limit handling, timeout protection, and response validation.
+ */
 export async function analyzeImage(fileBuffer, mimeType) {
   const client = getAIClient();
-  if (!client) {
-    throw new Error('AI client could not be initialized due to missing credentials');
-  }
 
   // Normalize MIME type to standard formats supported by Gemini
   let normalizedMimeType = mimeType || 'image/jpeg';
@@ -71,11 +116,13 @@ export async function analyzeImage(fileBuffer, mimeType) {
           },
           category: {
             type: "STRING",
-            description: "The best match category for this issue. Must be one of: 'Potholes', 'Streetlight Non-Functional', 'Water Leak', 'Others'."
+            enum: ['Potholes', 'Streetlight Non-Functional', 'Water Leak', 'Others'],
+            description: "The best match category for this issue."
           },
           severity: {
             type: "STRING",
-            description: "Estimated level of urgency / public danger. Must be one of: 'low', 'medium', 'high'."
+            enum: ['low', 'medium', 'high'],
+            description: "Estimated level of urgency / public danger."
           }
         },
         required: ["isAppropriate", "title", "description", "category", "severity"]
@@ -83,20 +130,37 @@ export async function analyzeImage(fileBuffer, mimeType) {
     }
   };
 
-  const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite"];
+  // Prioritize stable production models (gemini-2.5-flash as the primary)
+  const modelsToTry = ["gemini-2.5-flash", "gemini-2.5-pro"];
   let lastError = null;
 
   for (const model of modelsToTry) {
     let attempts = 3;
-    let delay = 1000;
+    let delay = 1500; // slightly increased initial delay for stable recovery
 
     for (let attempt = 1; attempt <= attempts; attempt++) {
+      const controller = new AbortController();
+      const timeoutMs = 30000; // 30 seconds request timeout limit
+
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, timeoutMs);
+
       try {
         console.log(`Invoking ${model} model for multimodal analysis (Attempt ${attempt}/${attempts})...`);
-        const response = await client.models.generateContent({
-          model,
-          ...payload
-        });
+        
+        // Wrap request in a Promise.race to guarantee we timeout correctly
+        const response = await Promise.race([
+          client.models.generateContent({
+            model,
+            ...payload
+          }),
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error(`AI request timed out after ${timeoutMs / 1000} seconds`));
+            }, timeoutMs);
+          })
+        ]);
 
         let rawText = response.text;
         if (!rawText) {
@@ -109,27 +173,39 @@ export async function analyzeImage(fileBuffer, mimeType) {
           rawText = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/, '').trim();
         }
 
-        console.log(`Gemini Analysis result obtained successfully using ${model} on attempt ${attempt}.`);
         const parsed = JSON.parse(rawText);
+
+        // Perform strict schema validation on AI output before returning it
+        validateAIResponse(parsed);
+
+        console.log(`Gemini Analysis result obtained and validated successfully using ${model} on attempt ${attempt}.`);
         return parsed;
       } catch (err) {
         lastError = err;
         const errMsg = typeof err === 'object' && err !== null ? (err.message || JSON.stringify(err)) : String(err);
+        
+        // Extended transient error check including rate limits (429, RESOURCE_EXHAUSTED)
         const isTransient = errMsg.includes('503') || 
                             errMsg.includes('500') || 
+                            errMsg.includes('429') ||
+                            errMsg.toUpperCase().includes('RESOURCE_EXHAUSTED') ||
                             errMsg.includes('UNAVAILABLE') || 
                             errMsg.includes('high demand') || 
                             errMsg.includes('temporary') || 
-                            errMsg.includes('overloaded');
+                            errMsg.includes('overloaded') ||
+                            errMsg.includes('rate limit') ||
+                            errMsg.includes('timeout');
 
         if (isTransient && attempt < attempts) {
-          console.warn(`Transient error calling ${model}: ${errMsg}. Retrying in ${delay}ms...`);
+          console.warn(`Transient/Rate-limit error calling ${model}: ${errMsg}. Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           delay *= 2; // Exponential backoff
         } else {
           console.warn(`Failed with model ${model} on attempt ${attempt}:`, errMsg);
-          break; // Break current attempt loop and move to next model
+          break; // Break attempt loop to move to next model in the fallback chain
         }
+      } finally {
+        clearTimeout(timeoutId);
       }
     }
   }

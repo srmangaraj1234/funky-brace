@@ -97,7 +97,7 @@ export default function FeedFeature() {
   };
 
   return (
-    <div className="space-y-6">
+    <div id="current-issues-feed" className="space-y-6">
       {/* Feed Filters */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-3">
         <div className="text-left">

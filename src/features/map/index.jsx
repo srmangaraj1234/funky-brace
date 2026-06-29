@@ -353,7 +353,15 @@ export default function MapFeature() {
 
               <div className="flex sm:flex-col gap-2 w-full sm:w-auto shrink-0 border-t sm:border-t-0 sm:border-l border-slate-100 pt-2 sm:pt-0 sm:pl-3.5">
                 <button
-                  onClick={() => toggleUpvote(activeIssue.id, user?.uid || 'anonymous_guest')}
+                  onClick={() => {
+                    if (!user) {
+                      if (window.confirm("Please Sign In with Google to upvote/validate issues. Would you like to sign in now?")) {
+                        useStore.getState().loginWithGoogle();
+                      }
+                      return;
+                    }
+                    toggleUpvote(activeIssue.id, user.uid);
+                  }}
                   className={`flex items-center justify-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all w-full sm:w-auto cursor-pointer ${
                     activeIssue.upvotedBy && Array.isArray(activeIssue.upvotedBy) && activeIssue.upvotedBy.includes(user?.uid)
                       ? 'bg-green-50 border-green-200 text-green-700'

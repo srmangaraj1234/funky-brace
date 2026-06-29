@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/index.js';
-import { MapPin, Search, Bell, Shield, LogOut, ChevronDown, Database } from 'lucide-react';
+import { MapPin, Search, Bell, Shield, LogOut, ChevronDown, X } from 'lucide-react';
 
 export default function Navbar() {
   const { user, role, loginWithGoogle, logout, toggleDevRole, searchQuery, setSearchQuery } = useStore();
@@ -63,18 +63,51 @@ export default function Navbar() {
       </div>
 
       {/* Global Search */}
-      <div className="hidden md:flex items-center flex-1 max-w-lg mx-8 relative">
+      <form 
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (searchQuery && searchQuery.trim() !== '') {
+            const element = document.getElementById("current-issues-feed");
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth' });
+            }
+          }
+        }}
+        className="hidden md:flex items-center flex-1 max-w-lg mx-8 relative"
+      >
         <input
           type="text"
-          placeholder="Search reported civic issues..."
+          placeholder="Search by title, category, location, or status..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-4 pr-10 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800 placeholder-slate-400 font-medium"
+          className={`w-full pl-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800 placeholder-slate-400 font-medium ${
+            searchQuery ? 'pr-16' : 'pr-10'
+          }`}
         />
-        <div className="absolute right-3.5 text-slate-400 pointer-events-none flex items-center">
-          <Search className="w-4 h-4" />
+        <div className="absolute right-2.5 flex items-center space-x-1">
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSearchQuery('');
+              }}
+              className="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition-all cursor-pointer"
+              title="Clear Search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            type="submit"
+            className="p-1 text-slate-400 hover:text-green-600 rounded-lg transition-all cursor-pointer"
+            title="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
         </div>
-      </div>
+      </form>
 
       {/* Action Tray */}
       <div className="flex items-center space-x-3">
@@ -165,23 +198,6 @@ export default function Navbar() {
                     <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold capitalize">
                       {role === 'citizen' ? 'To Admin' : 'To Citizen'}
                     </span>
-                  </button>
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (window.confirm("Seed 15 highly realistic Bengaluru issues into the live database for this demo?")) {
-                        try {
-                          await useStore.getState().seedBengaluruIssues();
-                          alert("Seeding completed successfully! 15 Bengaluru issues are now live.");
-                        } catch (err) {
-                          alert("Failed to seed database: " + err.message);
-                        }
-                      }
-                    }}
-                    className="w-full flex items-center space-x-2.5 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-xl transition-all text-left mt-1"
-                  >
-                    <Database className="w-4 h-4 text-indigo-600" />
-                    <span>Seed 15 BLR Issues</span>
                   </button>
                 </div>
 

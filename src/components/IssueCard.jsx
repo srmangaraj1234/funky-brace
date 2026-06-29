@@ -38,7 +38,13 @@ export default function IssueCard({ issue }) {
 
   const handleUpvote = (e) => {
     e.stopPropagation();
-    toggleUpvote(issue.id, user?.uid || 'anonymous_guest');
+    if (!user) {
+      if (window.confirm("Please Sign In with Google to upvote/validate issues. Would you like to sign in now?")) {
+        useStore.getState().loginWithGoogle();
+      }
+      return;
+    }
+    toggleUpvote(issue.id, user.uid);
   };
 
   const handleDownloadReceipt = (e) => {
@@ -83,7 +89,7 @@ export default function IssueCard({ issue }) {
         ["Reporting Date", formatDate(issue.createdAt)],
         ["Verification Status", mapStatusLabel(issue.status)],
         ["Community Upvotes", String(issue.upvotesCount)],
-        ["Reporter Profile", issue.isAnonymous ? "Anonymous Citizen" : issue.creatorName],
+        ["Reporter Profile", issue.creatorName || "Anonymous Citizen"],
       ];
 
       let yPos = 90;

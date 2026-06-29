@@ -35,14 +35,13 @@
         "status": { "type": "string", "enum": ["Reported", "Verified", "In Progress", "Resolved"] },
         "createdBy": { "type": "string" },
         "creatorName": { "type": "string" },
-        "isAnonymous": { "type": "boolean" },
         "upvotesCount": { "type": "number" },
         "upvotedBy": { "type": "array", "items": { "type": "string" } },
         "adminNotes": { "type": "string" },
         "createdAt": { "type": "string" },
         "resolvedAt": { "type": "string" }
       },
-      "required": ["title", "description", "category", "severity", "coordinates", "address", "status", "createdBy", "creatorName", "isAnonymous", "upvotesCount", "upvotedBy", "createdAt"]
+      "required": ["title", "description", "category", "severity", "coordinates", "address", "status", "createdBy", "creatorName", "upvotesCount", "upvotedBy", "createdAt"]
     }
   },
   "firestore": {
