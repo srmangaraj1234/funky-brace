@@ -19,7 +19,7 @@ export default function Navbar() {
     {
       id: 2,
       title: "New Upvote on your report",
-      message: "Your reported Pothole has reached community verified status.",
+      message: "Your reported Pothole has reached Community Verified status.",
       time: "1 day ago",
       unread: false,
     }

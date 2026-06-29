@@ -398,7 +398,7 @@ export default function ReportFeature() {
         ["Reporting Date", formatDate(new Date())],
         ["Citizen Profile", user ? `${user.displayName} (${user.email})` : "Anonymous Citizen"],
         ["Platform Source", "AI Studio Hyperlocal Portal"],
-        ["Status State", "Reported (Pending Validation)"]
+        ["Status State", "Issue Raised (Pending Validation)"]
       ];
 
       let y = 90;

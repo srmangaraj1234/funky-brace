@@ -5,6 +5,16 @@ import { formatDate } from '../utils/formatDate.js';
 import { getSeverityStyle } from '../utils/severityColor.js';
 import { jsPDF } from 'jspdf';
 
+const mapStatusLabel = (status) => {
+  const mapping = {
+    'Reported': 'Issue Raised',
+    'Verified': 'Community Verified',
+    'In Progress': 'Pending Action',
+    'Resolved': 'Resolved'
+  };
+  return mapping[status] || status;
+};
+
 export default function IssueCard({ issue }) {
   const { selectedIssueId, setSelectedIssueId, toggleUpvote, user, role } = useStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
@@ -71,7 +81,7 @@ export default function IssueCard({ issue }) {
         ["Severity Level", issue.severity.toUpperCase()],
         ["Current Location", issue.address],
         ["Reporting Date", formatDate(issue.createdAt)],
-        ["Verification Status", issue.status],
+        ["Verification Status", mapStatusLabel(issue.status)],
         ["Community Upvotes", String(issue.upvotesCount)],
         ["Reporter Profile", issue.isAnonymous ? "Anonymous Citizen" : issue.creatorName],
       ];
@@ -136,7 +146,7 @@ export default function IssueCard({ issue }) {
             {issue.category}
           </span>
           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border uppercase tracking-wider ${getStatusCapsule(issue.status)}`}>
-            {issue.status}
+            {mapStatusLabel(issue.status)}
           </span>
           {issue.severity === 'high' && (
             <span className="bg-[#fee2e2] text-[#991b1b] border border-[#fecaca] px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider">
@@ -214,49 +224,58 @@ export default function IssueCard({ issue }) {
           <FileDown className="w-3.5 h-3.5" />
         </button>
 
-        {/* Delete Spam (Admin exclusive) */}
+        {/* Delete (Admin exclusive) */}
         {role === 'admin' && (
           <div className="flex items-center gap-1">
-            {showDeleteConfirm ? (
-              <div className="flex flex-col items-center gap-1 bg-rose-50 border border-rose-200 p-1.5 rounded-lg">
-                <span className="text-[9px] font-extrabold text-rose-700 uppercase">Spam?</span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      useStore.getState().deleteIssue(issue.id);
-                      setShowDeleteConfirm(false);
-                    }}
-                    className="px-1.5 py-0.5 text-[9px] font-extrabold text-white bg-rose-600 hover:bg-rose-700 rounded-sm transition-all"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDeleteConfirm(false);
-                    }}
-                    className="px-1.5 py-0.5 text-[9px] font-extrabold text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 rounded-sm transition-all"
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowDeleteConfirm(true);
-                }}
-                className="p-1.5 text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg transition-all border border-rose-200"
-                title="Delete Spam"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeleteConfirm(true);
+              }}
+              className="p-1.5 text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg transition-all border border-rose-200"
+              title="Permanently Delete Issue"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
       </div>
+
+      {/* Beautiful Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200 text-left"
+          >
+            <h3 className="text-base font-bold text-slate-800">Permanently Delete Issue?</h3>
+            <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+              This will permanently delete the issue from the database. This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end space-x-2.5 mt-5">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  useStore.getState().deleteIssue(issue.id);
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-all"
+              >
+                Permanently Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -185,9 +185,9 @@ export default function FeedFeature() {
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 cursor-pointer"
               >
-                <option value="Reported">Reported</option>
-                <option value="Verified">Verified</option>
-                <option value="In Progress">In Progress</option>
+                <option value="Reported">Issue Raised</option>
+                <option value="Verified">Community Verified</option>
+                <option value="In Progress">Pending Action</option>
                 <option value="Resolved">Resolved</option>
               </select>
             </div>

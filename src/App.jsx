@@ -10,6 +10,37 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './services/firebase.js';
 
+const getGreetingAndNextTransition = () => {
+  const now = new Date();
+  const hours = now.getHours();
+  let greeting = "";
+  let nextTransitionHour = 0;
+
+  if (hours >= 5 && hours < 12) {
+    greeting = "Good morning";
+    nextTransitionHour = 12;
+  } else if (hours >= 12 && hours < 17) {
+    greeting = "Good afternoon";
+    nextTransitionHour = 17;
+  } else if (hours >= 17 && hours < 22) {
+    greeting = "Good evening";
+    nextTransitionHour = 22;
+  } else {
+    greeting = "Good night";
+    nextTransitionHour = 5;
+  }
+
+  const nextTransitionDate = new Date(now);
+  nextTransitionDate.setHours(nextTransitionHour, 0, 0, 0);
+  
+  if (nextTransitionDate <= now) {
+    nextTransitionDate.setDate(nextTransitionDate.getDate() + 1);
+  }
+
+  const msToNextTransition = nextTransitionDate.getTime() - now.getTime();
+  return { greeting, msToNextTransition };
+};
+
 export default function App() {
   const { 
     setSelectedIssueId, 
@@ -32,6 +63,31 @@ export default function App() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  const [greeting, setGreeting] = useState(() => {
+    const { greeting } = getGreetingAndNextTransition();
+    return greeting;
+  });
+
+  // Schedule dynamic greeting updates at the exact next transition
+  useEffect(() => {
+    let timeoutId;
+
+    const scheduleNextUpdate = () => {
+      const { greeting: currentGreeting, msToNextTransition } = getGreetingAndNextTransition();
+      setGreeting(currentGreeting);
+
+      timeoutId = setTimeout(() => {
+        scheduleNextUpdate();
+      }, msToNextTransition);
+    };
+
+    scheduleNextUpdate();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
+
   // Close custom dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -44,13 +100,6 @@ export default function App() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const getGreeting = () => {
-    const hours = new Date().getHours();
-    if (hours < 12) return "Good morning";
-    if (hours < 17) return "Good afternoon";
-    return "Good evening";
-  };
 
   // Set initial selected issue
   useEffect(() => {
@@ -241,7 +290,7 @@ export default function App() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">
-              {getGreeting()}, {user ? user.displayName.split(' ')[0] : 'Citizen'}.
+              {greeting}, {user ? user.displayName.split(' ')[0] : 'Citizen'}.
             </h1>
             <p className="text-sm font-semibold text-slate-400">
               Here's what your neighborhood is reporting today.

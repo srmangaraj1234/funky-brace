@@ -5,6 +5,16 @@ import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-m
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { formatDate } from '../../utils/formatDate.js';
 
+const mapStatusLabel = (status) => {
+  const mapping = {
+    'Reported': 'Issue Raised',
+    'Verified': 'Community Verified',
+    'In Progress': 'Pending Action',
+    'Resolved': 'Resolved'
+  };
+  return mapping[status] || status;
+};
+
 // MapUpdater helper to handle dynamic positioning and fits bounds
 function MapUpdater({ userLocation, issues }) {
   const map = useMap();
@@ -322,7 +332,7 @@ export default function MapFeature() {
                     activeIssue.status === 'In Progress' ? 'bg-amber-50 text-amber-700 border-amber-100' :
                     'bg-slate-50 text-slate-600 border-slate-100'
                   }`}>
-                    {activeIssue.status || 'Reported'}
+                    {mapStatusLabel(activeIssue.status) || 'Issue Raised'}
                   </span>
                 </div>
 
