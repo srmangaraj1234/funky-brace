@@ -200,7 +200,7 @@ export async function analyzeUpload(req, res) {
         isAppropriate: analysis.isAppropriate ?? true,
         title: analysis.title || 'Civic Issue',
         description: analysis.description || 'Description of observed civic issue.',
-        category: ['Potholes', 'Streetlight Non-Functional', 'Water Leak', 'Others'].includes(analysis.category)
+        category: ['Potholes', 'Streetlight', 'Water Leak', 'Others'].includes(analysis.category)
           ? analysis.category
           : 'Others',
         severity: ['low', 'medium', 'high'].includes(analysis.severity)

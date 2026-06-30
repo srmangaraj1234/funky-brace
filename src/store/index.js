@@ -26,6 +26,7 @@ import { db, auth, googleProvider, storage } from '../services/firebase.js';
 export const useStore = create((set, get) => {
   // Let's declare the subscription variable to prevent duplicates
   let unsubscribeIssues = null;
+  let isLoggingIn = false;
 
   return {
     user: null,
@@ -74,6 +75,11 @@ export const useStore = create((set, get) => {
 
     // Authentication Actions
     loginWithGoogle: async () => {
+      if (isLoggingIn) {
+        console.warn('Google login is already in progress, ignoring duplicate request.');
+        return;
+      }
+      isLoggingIn = true;
       set({ loading: true, error: null });
       try {
         const result = await signInWithPopup(auth, googleProvider);
@@ -121,10 +127,16 @@ export const useStore = create((set, get) => {
       } catch (err) {
         if (err.message && err.message.includes('offline')) {
           console.warn('Authentication/Login failed because client is offline:', err.message);
+          set({ error: err.message, loading: false });
+        } else if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
+          console.log('User closed or cancelled the authentication popup.');
+          set({ loading: false }); // Do not set error for a simple user cancel
         } else {
           console.error('Login error:', err);
+          set({ error: err.message, loading: false });
         }
-        set({ error: err.message, loading: false });
+      } finally {
+        isLoggingIn = false;
       }
     },
 

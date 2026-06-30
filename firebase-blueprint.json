@@ -19,7 +19,7 @@
       "properties": {
         "title": { "type": "string" },
         "description": { "type": "string" },
-        "category": { "type": "string", "enum": ["Potholes", "Streetlight Non-Functional", "Water Leak", "Others"] },
+        "category": { "type": "string", "enum": ["Potholes", "Streetlight", "Water Leak", "Others"] },
         "severity": { "type": "string", "enum": ["low", "medium", "high"] },
         "imageUrl": { "type": "string" },
         "imageIsSafe": { "type": "boolean" },

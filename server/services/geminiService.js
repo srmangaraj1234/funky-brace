@@ -54,7 +54,7 @@ function validateAIResponse(parsed) {
   }
 
   // Enum value checks
-  const validCategories = ['Potholes', 'Streetlight Non-Functional', 'Water Leak', 'Others'];
+  const validCategories = ['Potholes', 'Streetlight', 'Water Leak', 'Others'];
   const validSeverities = ['low', 'medium', 'high'];
 
   if (!validCategories.includes(parsed.category)) {
@@ -80,7 +80,7 @@ export async function analyzeImage(fileBuffer, mimeType) {
     normalizedMimeType = 'image/jpeg';
   }
 
-  const prompt = "Analyze this image and identify if it shows a genuine civic or city infrastructure issue (like potholes, non-functional streetlights, water leaks, broken pipes, damaged footpaths, garbage accumulation, or others). Determine if it is appropriate for public reporting (free of offensive content, spam, or safety/privacy violations). Suppress unsafe or irrelevant images by marking isAppropriate to false. Extract the title (maximum 6 words), description, standard category ('Potholes', 'Streetlight Non-Functional', 'Water Leak', 'Others'), and estimated severity ('low', 'medium', 'high').";
+  const prompt = "Analyze this image and identify if it shows a genuine civic or city infrastructure issue (like potholes, non-functional streetlights, water leaks, broken pipes, damaged footpaths, garbage accumulation, or others). Determine if it is appropriate for public reporting (free of offensive content, spam, or safety/privacy violations). Suppress unsafe or irrelevant images by marking isAppropriate to false. Extract the title (maximum 6 words), description, standard category ('Potholes', 'Streetlight', 'Water Leak', 'Others'), and estimated severity ('low', 'medium', 'high').";
 
   const imagePart = {
     inlineData: {
@@ -116,7 +116,7 @@ export async function analyzeImage(fileBuffer, mimeType) {
           },
           category: {
             type: "STRING",
-            enum: ['Potholes', 'Streetlight Non-Functional', 'Water Leak', 'Others'],
+            enum: ['Potholes', 'Streetlight', 'Water Leak', 'Others'],
             description: "The best match category for this issue."
           },
           severity: {

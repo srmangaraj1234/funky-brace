@@ -16,10 +16,42 @@ const mapStatusLabel = (status) => {
 };
 
 export default function IssueCard({ issue }) {
-  const { selectedIssueId, setSelectedIssueId, toggleUpvote, user, role } = useStore();
+  const { selectedIssueId, setSelectedIssueId, toggleUpvote, user, role, userLocation } = useStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const isSelected = selectedIssueId === issue.id;
   const isUpvoted = issue.upvotedBy && Array.isArray(issue.upvotedBy) ? issue.upvotedBy.includes(user?.uid) : false;
+
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+    const R = 6371000; // Earth's radius in meters
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c);
+  };
+
+  const distanceStr = React.useMemo(() => {
+    if (!user) return null;
+    if (!userLocation) return 'GPS off';
+    if (!issue.coordinates) return 'No location';
+    const dist = calculateDistance(
+      userLocation.latitude,
+      userLocation.longitude,
+      issue.coordinates.latitude,
+      issue.coordinates.longitude
+    );
+    if (dist == null || isNaN(dist)) return 'Unknown';
+    if (dist < 1000) {
+      return `${dist} m`;
+    }
+    return `${(dist / 1000).toFixed(1)} km`;
+  }, [user, userLocation, issue.coordinates]);
 
   // Re-map status style for clean mockup capsule colors
   const getStatusCapsule = (status) => {
@@ -117,14 +149,14 @@ export default function IssueCard({ issue }) {
   return (
     <div
       onClick={() => setSelectedIssueId(issue.id)}
-      className={`p-4 bg-white border rounded-2xl transition-all duration-300 text-left cursor-pointer flex items-start gap-4 ${
+      className={`bg-white border rounded-2xl transition-all duration-300 text-left cursor-pointer flex flex-col overflow-hidden ${
         isSelected
           ? 'border-green-500/80 shadow-md ring-3 ring-green-500/5'
           : 'border-slate-200/80 hover:border-slate-300 hover:shadow-xs'
       }`}
     >
-      {/* Thumbnail */}
-      <div className="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
+      {/* Thumbnail / Image container */}
+      <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-slate-100 flex items-center justify-center">
         {issue.imageUrl && issue.imageIsSafe !== false ? (
           <img
             src={issue.imageUrl}
@@ -132,119 +164,133 @@ export default function IssueCard({ issue }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center select-none">
-            <Image className="w-6 h-6 stroke-[1.5]" />
-            <span className="text-[8px] font-medium mt-1">No Image</span>
+          <div className="flex flex-col items-center justify-center text-slate-400 p-4 text-center select-none">
+            <Image className="w-8 h-8 stroke-[1.5]" />
+            <span className="text-xs font-semibold mt-2">No Image Provided</span>
           </div>
         )}
-        {issue.severity === 'high' && (
-          <div className="absolute top-1 left-1 bg-rose-500 text-white p-1 rounded-md shadow-sm">
-            <AlertTriangle className="w-3 h-3" />
-          </div>
-        )}
-      </div>
 
-      {/* Details body */}
-      <div className="flex-1 min-w-0 space-y-1.5 text-left">
-        {/* Category, Status, Severity Caps Row */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[10px] font-bold text-slate-500 bg-slate-100/80 border border-slate-200 px-2 py-0.5 rounded-md uppercase tracking-wider">
+        {/* Bottom overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent pointer-events-none" />
+
+        {/* Badges/Tags overlayed at the bottom of the image */}
+        <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center gap-1.5 z-10">
+          <span className="text-[10px] font-bold text-slate-700 bg-white/95 border border-slate-200 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">
             {issue.category}
           </span>
-          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border uppercase tracking-wider ${getStatusCapsule(issue.status)}`}>
-            {mapStatusLabel(issue.status)}
-          </span>
           {issue.severity === 'high' && (
-            <span className="bg-[#fee2e2] text-[#991b1b] border border-[#fecaca] px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider">
+            <span className="bg-rose-500 text-white px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider shadow-sm">
               High
             </span>
           )}
           {issue.severity === 'medium' && (
-            <span className="bg-[#fef3c7] text-[#92400e] border border-[#fde68a] px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider">
+            <span className="bg-amber-500 text-white px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider shadow-sm">
               Medium
             </span>
           )}
           {issue.severity === 'low' && (
-            <span className="bg-[#f0fdf4] text-[#166534] border border-[#bbf7d0] px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider">
+            <span className="bg-emerald-500 text-white px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider shadow-sm">
               Low
             </span>
           )}
-        </div>
-
-        {/* Title */}
-        <h3 className="text-sm font-bold text-slate-800 leading-snug hover:text-green-600 transition-colors">
-          {issue.title}
-        </h3>
-
-        {/* Meta data row: e.g. 100 Ft Rd • 2 hr ago • 3.1 km • 245 upvotes */}
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400 font-semibold pt-0.5">
-          <span className="flex items-center space-x-1 text-slate-500">
-            <MapPin className="w-3.5 h-3.5 text-slate-400" />
-            <span className="truncate max-w-[150px]">{issue.address}</span>
-          </span>
-          <span>•</span>
-          <span className="flex items-center space-x-1">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{formatDate(issue.createdAt)}</span>
-          </span>
-          <span>•</span>
-          <span className="text-slate-500 font-bold">
-            {issue.upvotesCount} upvotes
+          <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md border uppercase tracking-wider shadow-sm ${getStatusCapsule(issue.status)}`}>
+            {mapStatusLabel(issue.status)}
           </span>
         </div>
-
-        {/* Description expanded state */}
-        {isSelected && (
-          <p className="text-xs text-slate-500 leading-relaxed bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 animate-in fade-in duration-200 mt-2">
-            {issue.description || "No additional details provided."}
-            {issue.adminNotes && (
-              <span className="block mt-1.5 pt-1.5 border-t border-slate-150 text-green-700 font-medium">
-                <strong>Municipal Action:</strong> {issue.adminNotes}
-              </span>
-            )}
-          </p>
-        )}
       </div>
 
-      {/* Button controls (Right side Validate & PDF buttons) */}
-      <div className="flex flex-col items-end gap-1.5 shrink-0 self-center">
-        {role !== 'admin' && (
-          <button
-            onClick={handleUpvote}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[11px] font-extrabold border transition-all ${
-              isUpvoted
-                ? 'bg-green-600 border-green-600 text-white'
-                : 'bg-green-50 border-green-100/80 text-green-700 hover:bg-green-100/80'
-            }`}
-          >
-            <span>↑ Validate</span>
-          </button>
-        )}
+      {/* Details body */}
+      <div className="p-4 flex-1 flex flex-col justify-between space-y-3 text-left">
+        <div className="space-y-2">
+          {/* Title */}
+          <h3 className="text-sm font-bold text-slate-800 leading-snug hover:text-green-600 transition-colors">
+            {issue.title}
+          </h3>
 
-        {/* PDF Receipt download */}
-        <button
-          onClick={handleDownloadReceipt}
-          className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all border border-slate-200"
-          title="Download PDF Receipt"
-        >
-          <FileDown className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Delete (Admin exclusive) */}
-        {role === 'admin' && (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDeleteConfirm(true);
-              }}
-              className="p-1.5 text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg transition-all border border-rose-200"
-              title="Permanently Delete Issue"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+          {/* Location Pin */}
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-semibold">
+            <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="truncate max-w-xs text-slate-500">{issue.address}</span>
           </div>
-        )}
+
+          {/* Description */}
+          <p className={`text-xs text-slate-500/95 leading-relaxed ${isSelected ? '' : 'line-clamp-2'}`}>
+            {issue.description || "No additional details provided."}
+          </p>
+
+          {isSelected && issue.adminNotes && (
+            <div className="text-xs text-green-700 font-semibold bg-green-50/60 p-2.5 rounded-xl border border-green-100 animate-in fade-in duration-200 mt-2">
+              <strong>Municipal Action:</strong> {issue.adminNotes}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-slate-100 my-1" />
+
+        {/* Bottom row: Meta details and Actions */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          {/* Meta details (Left side) */}
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400 font-semibold">
+            <span className="flex items-center gap-1 text-slate-500">
+              <ThumbsUp className="w-3.5 h-3.5 text-slate-400" />
+              <span>{issue.upvotesCount} upvotes</span>
+            </span>
+            <span className="text-slate-300">|</span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              <span>{formatDate(issue.createdAt)}</span>
+            </span>
+            {user && distanceStr && (
+              <>
+                <span className="text-slate-300">|</span>
+                <span className="flex items-center gap-1 text-emerald-600 font-extrabold bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100/60 shadow-2xs">
+                  <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                  <span>{distanceStr}</span>
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Button controls (Right side) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {role !== 'admin' && (
+              <button
+                onClick={handleUpvote}
+                className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold border transition-all ${
+                  isUpvoted
+                    ? 'bg-slate-100 border-slate-200 text-slate-400 hover:bg-slate-200 hover:text-slate-500'
+                    : 'bg-green-600 border-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                <span>↑ Validate</span>
+              </button>
+            )}
+
+            {/* PDF Receipt download */}
+            <button
+              onClick={handleDownloadReceipt}
+              className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all border border-slate-200 bg-white"
+              title="Download PDF Receipt"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Delete (Admin exclusive) */}
+            {role === 'admin' && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteConfirm(true);
+                }}
+                className="p-1.5 text-rose-500 hover:text-white hover:bg-rose-500 rounded-lg transition-all border border-rose-200 bg-white"
+                title="Permanently Delete Issue"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Beautiful Delete Confirmation Modal */}

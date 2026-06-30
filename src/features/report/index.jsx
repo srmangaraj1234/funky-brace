@@ -12,7 +12,7 @@ function CustomCategorySelect({ value, onChange }) {
 
   const options = [
     { value: 'Potholes', label: 'Potholes' },
-    { value: 'Streetlight Non-Functional', label: 'Streetlight Non-Functional' },
+    { value: 'Streetlight', label: 'Streetlight' },
     { value: 'Water Leak', label: 'Water Leak' },
     { value: 'Others', label: 'Others' }
   ];

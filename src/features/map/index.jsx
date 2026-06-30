@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/index.js';
-import { MapPin, Navigation, Plus, Minus, ThumbsUp, Image, AlertCircle } from 'lucide-react';
+import { MapPin, Navigation, Plus, Minus, ThumbsUp, Image, AlertCircle, Globe } from 'lucide-react';
 import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { formatDate } from '../../utils/formatDate.js';
 
 const mapStatusLabel = (status) => {
@@ -16,17 +15,15 @@ const mapStatusLabel = (status) => {
 };
 
 // MapUpdater helper to handle dynamic positioning and fits bounds
-function MapUpdater({ userLocation, issues }) {
+function MapUpdater({ userLocation, issues, resetTrigger }) {
   const map = useMap();
+  const hasFittedRef = useRef(false);
 
-  useEffect(() => {
+  const performFit = () => {
     if (!map) return;
 
-    if (userLocation) {
-      // Dynamic GPS location granted: pan to user's coordinates
-      map.panTo({ lat: Number(userLocation.latitude), lng: Number(userLocation.longitude) });
-    } else if (issues && issues.length > 0) {
-      // GPS unavailable: automatically fit bounds to all reported issues
+    if (issues && issues.length > 0) {
+      // Automatically fit bounds to all reported issues so they are perfectly visible on screen
       const bounds = new window.google.maps.LatLngBounds();
       let hasCoords = false;
       issues.forEach((issue) => {
@@ -47,69 +44,72 @@ function MapUpdater({ userLocation, issues }) {
           }
         });
       }
+    } else if (userLocation) {
+      // If no issues reported, center on the user's location
+      map.panTo({ lat: Number(userLocation.latitude), lng: Number(userLocation.longitude) });
+      map.setZoom(14);
     } else {
-      // Sensible broad world view fallback (no hardcoded cities)
+      // Broad global fallback
       map.setCenter({ lat: 20, lng: 0 });
       map.setZoom(2);
     }
+  };
+
+  // Run only once on mount / initial load
+  useEffect(() => {
+    if (!map) return;
+    if (!hasFittedRef.current) {
+      performFit();
+      hasFittedRef.current = true;
+    }
   }, [map, userLocation, issues]);
+
+  // Run whenever the rocket/recenter button increments resetTrigger
+  useEffect(() => {
+    if (!map) return;
+    if (resetTrigger > 0) {
+      performFit();
+    }
+  }, [map, resetTrigger]);
 
   return null;
 }
 
-// Marker Clustering manager for the issue pins
+// Standard Markers manager for individual issue pins
 function ClusteredIssues({ issues, selectedIssueId, setSelectedIssueId }) {
-  const map = useMap();
-  const clustererRef = useRef(null);
-  const markersRef = useRef({});
-
-  // Initialize MarkerClusterer once
-  useEffect(() => {
-    if (!map) return;
-    if (!clustererRef.current) {
-      clustererRef.current = new MarkerClusterer({ map });
-    }
-    return () => {
-      if (clustererRef.current) {
-        clustererRef.current.clearMarkers();
-        clustererRef.current = null;
-      }
-    };
-  }, [map]);
-
-  // Sync clusterer markers list
-  useEffect(() => {
-    const clusterer = clustererRef.current;
-    if (!clusterer) return;
-
-    const timer = setTimeout(() => {
-      clusterer.clearMarkers();
-      const markerArray = Object.values(markersRef.current).filter(Boolean);
-      clusterer.addMarkers(markerArray);
-    }, 50);
-
-    return () => clearTimeout(timer);
-  }, [issues]);
-
-  const setMarkerRef = (id, marker) => {
-    if (marker) {
-      markersRef.current[id] = marker;
-    } else {
-      delete markersRef.current[id];
-    }
-  };
+  // To avoid overlapping markers, keep track of coordinates and apply a small spiral offset if they share the exact same location
+  const coordCounts = {};
 
   return (
     <>
       {issues.map((issue) => {
         if (!issue.coordinates) return null;
+        
+        let lat = Number(issue.coordinates.latitude);
+        let lng = Number(issue.coordinates.longitude);
+        
+        if (isNaN(lat) || isNaN(lng)) return null;
+
+        // Round coordinates to 5 decimal places (approx 1.1 meters) to group overlapping pins
+        const coordKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+        if (coordCounts[coordKey] === undefined) {
+          coordCounts[coordKey] = 0;
+        } else {
+          coordCounts[coordKey] += 1;
+          const index = coordCounts[coordKey];
+          // Distribute overlapping markers in a tiny circle around the core coordinate
+          const angle = index * ((2 * Math.PI) / 8); // Spread across 8 directions
+          const radius = 0.00015 * Math.ceil(index / 8); // Approx 15 meters offset per ring
+          lat += Math.sin(angle) * radius;
+          lng += Math.cos(angle) * radius;
+        }
+
         const isSelected = selectedIssueId === issue.id;
         
         return (
           <AdvancedMarker
             key={issue.id}
-            ref={(marker) => setMarkerRef(issue.id, marker)}
-            position={{ lat: Number(issue.coordinates.latitude), lng: Number(issue.coordinates.longitude) }}
+            position={{ lat, lng }}
             onClick={() => setSelectedIssueId(issue.id)}
           >
             <div 
@@ -136,6 +136,8 @@ function ClusteredIssues({ issues, selectedIssueId, setSelectedIssueId }) {
 export default function MapFeature() {
   const { issues, selectedIssueId, setSelectedIssueId, toggleUpvote, user, userLocation, searchQuery } = useStore();
   const [zoom, setZoom] = useState(14);
+  const [resetTrigger, setResetTrigger] = useState(0);
+  const [mapTypeId, setMapTypeId] = useState('roadmap');
 
   const filteredIssues = issues.filter((issue) => {
     const query = (searchQuery || '').trim().toLowerCase();
@@ -151,12 +153,9 @@ export default function MapFeature() {
   const activeIssue = filteredIssues.find((i) => i.id === selectedIssueId) || issues.find((i) => i.id === selectedIssueId);
 
   const handleResetLocation = () => {
-    setZoom(14);
-    if (userLocation) {
-      setSelectedIssueId(null);
-    } else if (filteredIssues.length > 0) {
-      setSelectedIssueId(filteredIssues[0].id);
-    }
+    // Reset selection and increment resetTrigger to force MapUpdater to re-fit map contents
+    setSelectedIssueId(null);
+    setResetTrigger((prev) => prev + 1);
   };
 
   // Helper to compute distance in kilometers/meters
@@ -245,13 +244,25 @@ export default function MapFeature() {
             >
               <Navigation className="w-4 h-4 fill-green-600 stroke-[2.5]" />
             </button>
+            <button
+              onClick={() => setMapTypeId(mapTypeId === 'roadmap' ? 'hybrid' : 'roadmap')}
+              className={`p-2 rounded-xl border shadow-xs active:scale-95 transition-all cursor-pointer ${
+                mapTypeId === 'hybrid'
+                  ? 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-600'
+                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
+              }`}
+              title={mapTypeId === 'hybrid' ? "Show Standard Map" : "Show Satellite View"}
+            >
+              <Globe className="w-4 h-4 stroke-[2.5]" />
+            </button>
           </div>
 
           {/* Styled Google Maps View */}
           <div className="flex-1 relative overflow-hidden">
             <APIProvider apiKey={API_KEY} version="weekly">
               <Map
-                defaultZoom={zoom}
+                zoom={zoom}
+                mapTypeId={mapTypeId}
                 mapId="DEMO_MAP_ID"
                 internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
                 style={{ width: '100%', height: '100%' }}
@@ -260,7 +271,7 @@ export default function MapFeature() {
                 disableDefaultUI={true}
               >
                 {/* Dynamically pan/zoom the map to selected/current location */}
-                <MapUpdater userLocation={userLocation} issues={filteredIssues} />
+                <MapUpdater userLocation={userLocation} issues={filteredIssues} resetTrigger={resetTrigger} />
 
                 {/* Pulsating user GPS location marker if available */}
                 {userLocation && (
