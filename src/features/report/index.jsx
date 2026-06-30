@@ -5,6 +5,7 @@ import { Upload, MapPin, Sparkles, AlertCircle, CheckCircle, FileText, RefreshCw
 import { jsPDF } from 'jspdf';
 import { formatDate } from '../../utils/formatDate.js';
 import { compressImage } from '../../utils/imageCompressor.js';
+import { getHaversineDistance } from '../../utils/haversine.js';
 
 function CustomCategorySelect({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -72,7 +73,7 @@ function CustomCategorySelect({ value, onChange }) {
         aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className={`w-full bg-slate-50 border rounded-xl px-3.5 py-2.5 text-xs text-slate-800 transition-all flex items-center justify-between focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 cursor-pointer ${
+        className={`w-full bg-slate-50 border rounded-xl px-3.5 py-2.5 text-xs text-slate-800 transition-all flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 cursor-pointer ${
           isOpen ? 'border-green-500 ring-2 ring-green-500/20 bg-white' : 'border-slate-200 hover:bg-slate-100/50'
         }`}
       >
@@ -152,22 +153,6 @@ export default function ReportFeature() {
   const [lastSubmittedId, setLastSubmittedId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate distance in meters between two lat/lng coordinates
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return Infinity;
-    const R = 6371000; // Earth's radius in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Math.round(R * c);
-  };
-
   // Parse latitude and longitude coordinates directly from address text if present
   const parseCoordinatesFromAddress = (text) => {
     if (!text) return null;
@@ -224,7 +209,7 @@ export default function ReportFeature() {
   const checkDuplicates = (coords) => {
     if (!coords) return;
     const matches = issues.map(issue => {
-      const dist = calculateDistance(
+      const dist = getHaversineDistance(
         coords.latitude,
         coords.longitude,
         issue.coordinates?.latitude,
@@ -798,7 +783,7 @@ export default function ReportFeature() {
                   placeholder="E.g., Deep asphalt crack near crossroads"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                 />
               </div>
 
@@ -851,7 +836,7 @@ export default function ReportFeature() {
                       setAddress(e.target.value);
                       setCoordinates(null);
                     }}
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                   />
                   <button
                     type="button"
@@ -871,7 +856,7 @@ export default function ReportFeature() {
                   placeholder="Optional description..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                 />
               </div>
 

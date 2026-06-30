@@ -302,7 +302,7 @@ export default function App() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center justify-between space-x-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-full pl-5 pr-4 py-2.5 text-xs font-bold text-slate-700 shadow-xs focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500/40 transition-all duration-200 select-none cursor-pointer"
+                className="flex items-center justify-between space-x-2.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-full pl-5 pr-4 py-2.5 text-xs font-bold text-slate-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500/40 transition-all duration-200 select-none cursor-pointer"
               >
                 <span>{timeframe}</span>
                 <svg

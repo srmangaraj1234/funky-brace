@@ -4,6 +4,7 @@ import { ThumbsUp, MapPin, Clock, AlertTriangle, FileDown, Sparkles, CheckCircle
 import { formatDate } from '../utils/formatDate.js';
 import { getSeverityStyle } from '../utils/severityColor.js';
 import { jsPDF } from 'jspdf';
+import { getHaversineDistance } from '../utils/haversine.js';
 
 const mapStatusLabel = (status) => {
   const mapping = {
@@ -21,26 +22,11 @@ export default function IssueCard({ issue }) {
   const isSelected = selectedIssueId === issue.id;
   const isUpvoted = issue.upvotedBy && Array.isArray(issue.upvotedBy) ? issue.upvotedBy.includes(user?.uid) : false;
 
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
-    const R = 6371000; // Earth's radius in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Math.round(R * c);
-  };
-
   const distanceStr = React.useMemo(() => {
     if (!user) return null;
     if (!userLocation) return 'GPS off';
     if (!issue.coordinates) return 'No location';
-    const dist = calculateDistance(
+    const dist = getHaversineDistance(
       userLocation.latitude,
       userLocation.longitude,
       issue.coordinates.latitude,
@@ -48,7 +34,7 @@ export default function IssueCard({ issue }) {
     );
     if (dist == null || isNaN(dist)) return 'Unknown';
     if (dist < 1000) {
-      return `${dist} m`;
+      return `${Math.round(dist)} m`;
     }
     return `${(dist / 1000).toFixed(1)} km`;
   }, [user, userLocation, issue.coordinates]);

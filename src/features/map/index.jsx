@@ -3,6 +3,8 @@ import { useStore } from '../../store/index.js';
 import { MapPin, Navigation, Plus, Minus, ThumbsUp, Image, AlertCircle, Globe } from 'lucide-react';
 import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
 import { formatDate } from '../../utils/formatDate.js';
+import { motion } from 'motion/react';
+import { getHaversineDistance } from '../../utils/haversine.js';
 
 const mapStatusLabel = (status) => {
   const mapping = {
@@ -138,16 +140,20 @@ export default function MapFeature() {
   const [zoom, setZoom] = useState(14);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [mapTypeId, setMapTypeId] = useState('roadmap');
+  const [priorityFilter, setPriorityFilter] = useState('all'); // 'all', 'high', 'medium', 'low'
 
   const filteredIssues = issues.filter((issue) => {
     const query = (searchQuery || '').trim().toLowerCase();
-    if (!query) return true;
-    return (
+    const matchesSearch = !query || (
       (issue.title && issue.title.toLowerCase().includes(query)) ||
       (issue.category && issue.category.toLowerCase().includes(query)) ||
       (issue.address && issue.address.toLowerCase().includes(query)) ||
       (issue.status && issue.status.toLowerCase().includes(query))
     );
+
+    const matchesPriority = priorityFilter === 'all' || (issue.severity && issue.severity.toLowerCase() === priorityFilter);
+
+    return matchesSearch && matchesPriority;
   });
 
   const activeIssue = filteredIssues.find((i) => i.id === selectedIssueId) || issues.find((i) => i.id === selectedIssueId);
@@ -158,24 +164,14 @@ export default function MapFeature() {
     setResetTrigger((prev) => prev + 1);
   };
 
-  // Helper to compute distance in kilometers/meters
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  // Helper to compute distance string using the shared getHaversineDistance helper
+  const getDistanceString = (lat1, lon1, lat2, lon2) => {
     if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
-    const R = 6371; // Radius of the Earth in km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
-    if (d < 1) {
-      return `${Math.round(d * 1000)} m`;
+    const distanceMeters = getHaversineDistance(lat1, lon1, lat2, lon2);
+    if (distanceMeters < 1000) {
+      return `${Math.round(distanceMeters)} m`;
     }
-    return `${d.toFixed(1)} km`;
+    return `${(distanceMeters / 1000).toFixed(1)} km`;
   };
 
   const API_KEY =
@@ -295,20 +291,80 @@ export default function MapFeature() {
             </APIProvider>
           </div>
 
-          {/* Traffic light legend on bottom left */}
-          <div className="absolute bottom-3 left-3 z-10 bg-white/95 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-100 shadow-sm flex items-center space-x-4 text-[10px] font-bold text-slate-500">
-            <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 border border-white"></span>
-              <span>High Priority</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 border border-white"></span>
-              <span>Medium Priority</span>
-            </div>
-            <div className="flex items-center space-x-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500 border border-white"></span>
-              <span>Low Priority</span>
-            </div>
+          {/* Traffic light legend on bottom left (now an interactive filter control) */}
+          <div className="absolute bottom-3 left-3 z-10 bg-slate-100/80 backdrop-blur-md p-1 rounded-xl border border-slate-200/40 shadow-sm flex items-center gap-1 text-[10px] font-bold text-slate-500 select-none max-w-[calc(100%-24px)] overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setPriorityFilter('all')}
+              className={`relative flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg transition-colors active:scale-95 cursor-pointer whitespace-nowrap ${
+                priorityFilter === 'all'
+                  ? 'text-slate-800'
+                  : 'hover:text-slate-700 text-slate-500'
+              }`}
+            >
+              {priorityFilter === 'all' && (
+                <motion.div
+                  layoutId="activeFilterBg"
+                  className="absolute inset-0 bg-white/70 backdrop-blur-[2px] rounded-lg border border-white/60 shadow-2xs z-0"
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                />
+              )}
+              <span className="relative z-10 w-2 h-2 rounded-full bg-slate-400 border border-white shrink-0"></span>
+              <span className="relative z-10">All</span>
+            </button>
+            <button
+              onClick={() => setPriorityFilter('high')}
+              className={`relative flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg transition-colors active:scale-95 cursor-pointer whitespace-nowrap ${
+                priorityFilter === 'high'
+                  ? 'text-rose-700'
+                  : 'hover:text-slate-700 text-slate-500'
+              }`}
+            >
+              {priorityFilter === 'high' && (
+                <motion.div
+                  layoutId="activeFilterBg"
+                  className="absolute inset-0 bg-white/70 backdrop-blur-[2px] rounded-lg border border-white/60 shadow-2xs z-0"
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                />
+              )}
+              <span className="relative z-10 w-2 h-2 rounded-full bg-red-500 border border-white shrink-0"></span>
+              <span className="relative z-10">High Priority</span>
+            </button>
+            <button
+              onClick={() => setPriorityFilter('medium')}
+              className={`relative flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg transition-colors active:scale-95 cursor-pointer whitespace-nowrap ${
+                priorityFilter === 'medium'
+                  ? 'text-amber-700'
+                  : 'hover:text-slate-700 text-slate-500'
+              }`}
+            >
+              {priorityFilter === 'medium' && (
+                <motion.div
+                  layoutId="activeFilterBg"
+                  className="absolute inset-0 bg-white/70 backdrop-blur-[2px] rounded-lg border border-white/60 shadow-2xs z-0"
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                />
+              )}
+              <span className="relative z-10 w-2 h-2 rounded-full bg-yellow-500 border border-white shrink-0"></span>
+              <span className="relative z-10">Medium Priority</span>
+            </button>
+            <button
+              onClick={() => setPriorityFilter('low')}
+              className={`relative flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg transition-colors active:scale-95 cursor-pointer whitespace-nowrap ${
+                priorityFilter === 'low'
+                  ? 'text-emerald-700'
+                  : 'hover:text-slate-700 text-slate-500'
+              }`}
+            >
+              {priorityFilter === 'low' && (
+                <motion.div
+                  layoutId="activeFilterBg"
+                  className="absolute inset-0 bg-white/70 backdrop-blur-[2px] rounded-lg border border-white/60 shadow-2xs z-0"
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                />
+              )}
+              <span className="relative z-10 w-2 h-2 rounded-full bg-green-500 border border-white shrink-0"></span>
+              <span className="relative z-10">Low Priority</span>
+            </button>
           </div>
 
           {/* Dynamic Pop-up Info Preview Drawer */}
@@ -354,7 +410,7 @@ export default function MapFeature() {
                   <span className="w-1 h-1 rounded-full bg-slate-200"></span>
                   <span className="text-slate-500 font-bold">
                     {userLocation 
-                      ? `${calculateDistance(userLocation.latitude, userLocation.longitude, activeIssue.coordinates?.latitude, activeIssue.coordinates?.longitude)} away`
+                      ? `${getDistanceString(userLocation.latitude, userLocation.longitude, activeIssue.coordinates?.latitude, activeIssue.coordinates?.longitude)} away`
                       : 'Distance unavailable'}
                   </span>
                   <span className="w-1 h-1 rounded-full bg-slate-200"></span>

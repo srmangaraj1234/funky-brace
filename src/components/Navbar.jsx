@@ -80,7 +80,7 @@ export default function Navbar() {
           placeholder="Search by title, category, location, or status..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className={`w-full pl-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800 placeholder-slate-400 font-medium ${
+          className={`w-full pl-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-slate-800 placeholder-slate-400 font-medium ${
             searchQuery ? 'pr-16' : 'pr-10'
           }`}
         />
