@@ -1,10 +1,115 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/index.js';
 import { auth } from '../../services/firebase.js';
-import { Upload, MapPin, Sparkles, AlertCircle, CheckCircle, FileText, RefreshCw, ThumbsUp, Image } from 'lucide-react';
+import { Upload, MapPin, Sparkles, AlertCircle, CheckCircle, FileText, RefreshCw, ThumbsUp, Image, ChevronDown, Check } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { formatDate } from '../../utils/formatDate.js';
 import { compressImage } from '../../utils/imageCompressor.js';
+
+function CustomCategorySelect({ value, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const options = [
+    { value: 'Potholes', label: 'Potholes' },
+    { value: 'Streetlight Non-Functional', label: 'Streetlight Non-Functional' },
+    { value: 'Water Leak', label: 'Water Leak' },
+    { value: 'Others', label: 'Others' }
+  ];
+
+  // Close when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSelect = (optionValue) => {
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsOpen(!isOpen);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else {
+        const currentIndex = options.findIndex(opt => opt.value === value);
+        const nextIndex = (currentIndex + 1) % options.length;
+        onChange(options[nextIndex].value);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else {
+        const currentIndex = options.findIndex(opt => opt.value === value);
+        const prevIndex = (currentIndex - 1 + options.length) % options.length;
+        onChange(options[prevIndex].value);
+      }
+    }
+  };
+
+  const selectedOption = options.find(opt => opt.value === value) || options[0];
+
+  return (
+    <div className="relative w-full" ref={containerRef} id="category-select-container">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={handleKeyDown}
+        className={`w-full bg-slate-50 border rounded-xl px-3.5 py-2.5 text-xs text-slate-800 transition-all flex items-center justify-between focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 cursor-pointer ${
+          isOpen ? 'border-green-500 ring-2 ring-green-500/20 bg-white' : 'border-slate-200 hover:bg-slate-100/50'
+        }`}
+      >
+        <span className="font-medium">{selectedOption.label}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-green-600' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <ul
+          role="listbox"
+          tabIndex={-1}
+          className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100 max-h-60 overflow-y-auto"
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <li
+                key={option.value}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => handleSelect(option.value)}
+                className={`px-3.5 py-2.5 text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                  isSelected
+                    ? 'bg-green-50 text-green-800 font-bold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>{option.label}</span>
+                {isSelected && <Check className="w-4 h-4 text-green-600 shrink-0" />}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function ReportFeature() {
   const { addIssue, issues, user, toggleUpvote } = useStore();
@@ -18,7 +123,6 @@ export default function ReportFeature() {
   // Custom Sign-In Modal States
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [signInReason, setSignInReason] = useState('');
-  const [afterSignInAction, setAfterSignInAction] = useState(null);
 
   useEffect(() => {
     return () => {
@@ -181,9 +285,6 @@ export default function ReportFeature() {
     let currentUser = user;
     if (!currentUser) {
       setSignInReason("Please sign in with Google to analyze images and report civic issues.");
-      setAfterSignInAction(() => () => {
-        handleFileUpload(uploadedFile);
-      });
       setShowSignInModal(true);
       return;
     }
@@ -311,11 +412,6 @@ export default function ReportFeature() {
   const triggerFileSelect = () => {
     if (!user) {
       setSignInReason("Please sign in with Google to analyze images and report civic issues.");
-      setAfterSignInAction(() => () => {
-        setTimeout(() => {
-          fileInputRef.current?.click();
-        }, 100);
-      });
       setShowSignInModal(true);
       return;
     }
@@ -339,7 +435,6 @@ export default function ReportFeature() {
     console.log('[TRACE] handleFormSubmit() is entered.');
     if (!user) {
       setSignInReason("Please sign in with Google to report a civic issue.");
-      setAfterSignInAction(() => () => {});
       setShowSignInModal(true);
       return;
     }
@@ -621,9 +716,6 @@ export default function ReportFeature() {
                   e.stopPropagation();
                   if (!user) {
                     setSignInReason("Please sign in with Google to report a civic issue.");
-                    setAfterSignInAction(() => () => {
-                      setShowManualForm(true);
-                    });
                     setShowSignInModal(true);
                     return;
                   }
@@ -712,16 +804,7 @@ export default function ReportFeature() {
 
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Category</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-hidden"
-                >
-                  <option value="Potholes">Potholes</option>
-                  <option value="Streetlight Non-Functional">Streetlight Non-Functional</option>
-                  <option value="Water Leak">Water Leak</option>
-                  <option value="Others">Others</option>
-                </select>
+                <CustomCategorySelect value={category} onChange={setCategory} />
               </div>
 
               <div className="space-y-1.5">
@@ -892,9 +975,6 @@ export default function ReportFeature() {
                   const currentUser = useStore.getState().user;
                   if (currentUser) {
                     setShowSignInModal(false);
-                    if (afterSignInAction) {
-                      afterSignInAction();
-                    }
                   }
                 } catch (err) {
                   console.error("Sign in failed:", err);
@@ -915,7 +995,6 @@ export default function ReportFeature() {
               type="button"
               onClick={() => {
                 setShowSignInModal(false);
-                setAfterSignInAction(null);
               }}
               className="w-full py-2 text-slate-500 hover:text-slate-800 text-xs font-semibold hover:bg-slate-50 rounded-xl transition-all"
             >

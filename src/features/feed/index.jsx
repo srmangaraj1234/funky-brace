@@ -1,7 +1,119 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../store/index.js';
 import IssueCard from '../../components/IssueCard.jsx';
-import { Compass, Flame, Clock, ClipboardList, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Compass, Flame, Clock, ClipboardList, CheckCircle2, ShieldCheck, RefreshCw, ChevronDown, Check } from 'lucide-react';
+
+function CustomStatusSelect({ value, onChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const options = [
+    { value: 'Verified', label: 'Community Verified' },
+    { value: 'In Progress', label: 'Pending Action' },
+    { value: 'Resolved', label: 'Resolved' }
+  ];
+
+  // Close when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSelect = (optionValue) => {
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsOpen(!isOpen);
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else {
+        const currentIndex = options.findIndex(opt => opt.value === value);
+        const nextIndex = (currentIndex + 1) % options.length;
+        onChange(options[nextIndex].value);
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen) {
+        setIsOpen(true);
+      } else {
+        const currentIndex = options.findIndex(opt => opt.value === value);
+        const prevIndex = (currentIndex - 1 + options.length) % options.length;
+        onChange(options[prevIndex].value);
+      }
+    }
+  };
+
+  let selectedLabel = 'Issue Raised';
+  const foundOpt = options.find(opt => opt.value === value);
+  if (foundOpt) {
+    selectedLabel = foundOpt.label;
+  } else if (value === 'Reported') {
+    selectedLabel = 'Issue Raised';
+  } else {
+    selectedLabel = value;
+  }
+
+  return (
+    <div className="relative w-full" ref={containerRef} id="status-select-container">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={handleKeyDown}
+        className={`w-full bg-white border rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 transition-all flex items-center justify-between focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 cursor-pointer ${
+          isOpen ? 'border-green-500 ring-2 ring-green-500/20 bg-white' : 'border-slate-200 hover:bg-slate-50'
+        }`}
+      >
+        <span>{selectedLabel}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-green-600' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <ul
+          role="listbox"
+          tabIndex={-1}
+          className="absolute z-50 w-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-100 max-h-60 overflow-y-auto"
+        >
+          {options.map((option) => {
+            const isSelected = option.value === value;
+            return (
+              <li
+                key={option.value}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => handleSelect(option.value)}
+                className={`px-3.5 py-2.5 text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                  isSelected
+                    ? 'bg-green-50 text-green-800 font-bold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span>{option.label}</span>
+                {isSelected && <Check className="w-4 h-4 text-green-600 shrink-0" />}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function FeedFeature() {
   const { 
@@ -180,16 +292,7 @@ export default function FeedFeature() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5 md:col-span-1">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Update Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 cursor-pointer"
-              >
-                <option value="Reported">Issue Raised</option>
-                <option value="Verified">Community Verified</option>
-                <option value="In Progress">Pending Action</option>
-                <option value="Resolved">Resolved</option>
-              </select>
+              <CustomStatusSelect value={status} onChange={setStatus} />
             </div>
 
             <div className="space-y-1.5 md:col-span-2">
