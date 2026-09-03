@@ -16,7 +16,7 @@
     "@vis.gl/react-google-maps": "^1.8.3",
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^17.2.3",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "firebase": "^12.15.0",
     "firebase-admin": "^14.1.0",
     "jspdf": "^4.2.1",
